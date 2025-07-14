@@ -7,6 +7,7 @@ import { IconSymbol } from "@/components/ui/IconSymbol";
 import TabBarBackground from "@/components/ui/TabBarBackground";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -33,6 +34,15 @@ export default function TabLayout() {
           title: "Pomodoro",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="timer" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="tasks"
+        options={{
+          title: "Tasks",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="checkmark-done-outline" size={24} color={color} />
           ),
         }}
       />

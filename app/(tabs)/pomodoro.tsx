@@ -1,3 +1,4 @@
+import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { Audio } from "expo-av";
@@ -20,16 +21,20 @@ export default function PomodoroScreen() {
 
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [isBreakTime, setIsBreakTime] = useState<boolean>(false);
-  const [session, setSession] = useState<number>(1);
+  const [sessionCount, setSessionCount] = useState<number>(1);
+  const [maxSessions, setMaxSessions] = useState<number>(2);
 
   const [pomoDuration, setPomoDuration] = useState<number>(25);
-  const [shortBreak, setShortBreak] = useState<number>(5);
-  const [longBreak, setLongBreak] = useState<number>(15);
-  const [maxSession, setMaxSession] = useState<number>(2);
-
+  const [breakDuration, setBreakDuration] = useState<number>(5);
+  const [longBreakDuration, setLongBreakDuration] = useState<number>(15);
   const [secondsLeft, setSecondsLeft] = useState<number>(25 * 60);
-  const intervalRef = useRef<number | null>(null);
+
   const [showSettings, setShowSettings] = useState<boolean>(false);
+  const intervalRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setSecondsLeft(pomoDuration * 60);
+  }, [pomoDuration]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -38,7 +43,13 @@ export default function PomodoroScreen() {
           <TouchableOpacity onPress={() => setShowSettings(true)}>
             <Ionicons name="settings-outline" size={24} color="white" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push("/auth/login")}>
+          <TouchableOpacity
+            onPress={async () => {
+              const { data } = await supabase.auth.getSession();
+              if (data.session) router.push("/auth/profile");
+              else router.push("/auth/login");
+            }}
+          >
             <Ionicons name="person-circle-outline" size={28} color="white" />
           </TouchableOpacity>
         </View>
@@ -50,10 +61,33 @@ export default function PomodoroScreen() {
   }, [navigation]);
 
   useEffect(() => {
-    setSecondsLeft(pomoDuration * 60);
-  }, [pomoDuration]);
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === "SIGNED_IN" && session?.user) {
+          const { data, error } = await supabase
+            .from("pomodoro_settings")
+            .select("*")
+            .eq("user_id", session.user.id)
+            .single();
 
-  const playSound = async () => {
+          if (!error && data) {
+            setPomoDuration(data.pomo_duration);
+            setBreakDuration(data.break_duration);
+            setLongBreakDuration(data.long_break_duration);
+            setMaxSessions(data.max_sessions);
+            setSecondsLeft(data.pomo_duration * 60);
+            setIsRunning(false);
+            setIsBreakTime(false);
+            setSessionCount(1);
+          }
+        }
+      }
+    );
+
+    return () => authListener.subscription.unsubscribe();
+  }, []);
+
+  const playSound = async (): Promise<void> => {
     const { sound } = await Audio.Sound.createAsync(alertSoundPath);
     await sound.playAsync();
   };
@@ -67,41 +101,38 @@ export default function PomodoroScreen() {
             setIsRunning(false);
             playSound();
 
-            let nextIsBreak = !isBreakTime;
-            let nextSession = session;
+            const isLastSession = sessionCount === maxSessions;
 
-            if (!isBreakTime) {
-              nextSession = session + 1;
-              setSession(nextSession);
-            }
+            let nextTime = 0;
+            let alertTitle = "";
+            let alertMsg = "";
 
-            const isLongBreak = nextSession > maxSession;
-
-            if (isLongBreak) {
-              Alert.alert("Long Break!", "You earned it.");
-              setSession(1);
-              setIsBreakTime(true);
-              setSecondsLeft(longBreak * 60);
+            if (isBreakTime) {
+              // Was break, go to next pomodoro
+              setIsBreakTime(false);
+              nextTime = pomoDuration * 60;
+              alertTitle = "Focus Time!";
+              alertMsg = "Time to get back to work.";
+              setSessionCount((prev) => (isLastSession ? 1 : prev + 1));
             } else {
-              setIsBreakTime(nextIsBreak);
-              setSecondsLeft(nextIsBreak ? shortBreak * 60 : pomoDuration * 60);
-              Alert.alert(
-                nextIsBreak ? "Break Time" : "Back to Work!",
-                nextIsBreak ? "Time to relax." : "Let's get focused again!"
-              );
+              // Was work, go to break or long break
+              const isLong = isLastSession;
+              nextTime = isLong ? longBreakDuration * 60 : breakDuration * 60;
+              alertTitle = isLong ? "Long Break!" : "Break Time!";
+              alertMsg = isLong
+                ? "Enjoy your long break."
+                : "Take a short rest.";
+              setIsBreakTime(true);
             }
 
-            return isLongBreak
-              ? longBreak * 60
-              : nextIsBreak
-              ? shortBreak * 60
-              : pomoDuration * 60;
+            Alert.alert(alertTitle, alertMsg);
+            return nextTime;
           }
           return prev - 1;
         });
       }, 1000);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+    } else if (intervalRef.current) {
+      clearInterval(intervalRef.current);
     }
 
     return () => {
@@ -113,31 +144,25 @@ export default function PomodoroScreen() {
     if (intervalRef.current) clearInterval(intervalRef.current);
     setIsRunning(false);
     setIsBreakTime(false);
-    setSession(1);
+    setSessionCount(1);
     setSecondsLeft(pomoDuration * 60);
   };
 
   const formatTime = (secs: number): string => {
-    const m = Math.floor(secs / 60)
+    const minutes = Math.floor(secs / 60)
       .toString()
       .padStart(2, "0");
-    const s = (secs % 60).toString().padStart(2, "0");
-    return `${m}:${s}`;
+    const seconds = (secs % 60).toString().padStart(2, "0");
+    return `${minutes}:${seconds}`;
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>
-        {isBreakTime
-          ? session > maxSession
-            ? "Long Break"
-            : "Short Break"
-          : "Focus Time"}
-      </Text>
-      <Text style={styles.session}>
-        Session {session} of {maxSession}
-      </Text>
+      <Text style={styles.label}>{isBreakTime ? "Break" : "Focus"}</Text>
       <Text style={styles.timer}>{formatTime(secondsLeft)}</Text>
+      <Text style={styles.label}>
+        Session: {sessionCount} / {maxSessions}
+      </Text>
 
       <View style={styles.buttons}>
         <TouchableOpacity
@@ -170,7 +195,7 @@ export default function PomodoroScreen() {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Timer Settings</Text>
 
-            <Text>Pomodoro (min):</Text>
+            <Text>Pomodoro Duration (minutes):</Text>
             <TextInput
               style={styles.input}
               keyboardType="numeric"
@@ -178,28 +203,28 @@ export default function PomodoroScreen() {
               onChangeText={(val) => setPomoDuration(Number(val))}
             />
 
-            <Text>Short Break (min):</Text>
+            <Text>Break Duration (minutes):</Text>
             <TextInput
               style={styles.input}
               keyboardType="numeric"
-              value={shortBreak.toString()}
-              onChangeText={(val) => setShortBreak(Number(val))}
+              value={breakDuration.toString()}
+              onChangeText={(val) => setBreakDuration(Number(val))}
             />
 
-            <Text>Long Break (min):</Text>
+            <Text>Long Break Duration (minutes):</Text>
             <TextInput
               style={styles.input}
               keyboardType="numeric"
-              value={longBreak.toString()}
-              onChangeText={(val) => setLongBreak(Number(val))}
+              value={longBreakDuration.toString()}
+              onChangeText={(val) => setLongBreakDuration(Number(val))}
             />
 
-            <Text>Total Sessions:</Text>
+            <Text>Max Sessions:</Text>
             <TextInput
               style={styles.input}
               keyboardType="numeric"
-              value={maxSession.toString()}
-              onChangeText={(val) => setMaxSession(Number(val))}
+              value={maxSessions.toString()}
+              onChangeText={(val) => setMaxSessions(Number(val))}
             />
 
             <View style={styles.modalButtons}>
@@ -207,11 +232,7 @@ export default function PomodoroScreen() {
                 style={[styles.button, { backgroundColor: "#0A84FF" }]}
                 onPress={() => {
                   setSecondsLeft(
-                    isBreakTime
-                      ? session > maxSession
-                        ? longBreak * 60
-                        : shortBreak * 60
-                      : pomoDuration * 60
+                    isBreakTime ? breakDuration * 60 : pomoDuration * 60
                   );
                   setShowSettings(false);
                 }}
@@ -233,7 +254,6 @@ export default function PomodoroScreen() {
   );
 }
 
-// ✅ StyleSheet not converted to TSX as requested
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -243,24 +263,20 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   label: {
-    fontSize: 24,
+    fontSize: 20,
     color: "white",
-    marginBottom: 6,
-  },
-  session: {
-    fontSize: 16,
-    color: "white",
-    marginBottom: 10,
+    marginBottom: 8,
   },
   timer: {
     fontSize: 72,
     fontWeight: "bold",
     color: "white",
-    marginBottom: 40,
+    marginBottom: 16,
   },
   buttons: {
     flexDirection: "row",
     gap: 12,
+    marginTop: 12,
     flexWrap: "wrap",
     justifyContent: "center",
   },
