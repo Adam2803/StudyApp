@@ -1,64 +1,69 @@
+import SettingsModal from "@/components/SettingsModal";
+import { useTheme } from "@/components/theme-context";
+import TimerControls from "@/components/TimerControls";
+import TimerDisplay from "@/components/TimerDisplay";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { Audio } from "expo-av";
 import { router } from "expo-router";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
-import {
-  Alert,
-  Modal,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, View } from "react-native";
 
 const alertSoundPath = require("@/assets/sounds/alert.mp3");
 
 export default function PomodoroScreen() {
   const navigation = useNavigation();
+  const { theme } = useTheme();
+  const [isRunning, setIsRunning] = useState(false);
+  const [isBreakTime, setIsBreakTime] = useState(false);
+  const [sessionCount, setSessionCount] = useState(1);
+  const [maxSessions, setMaxSessions] = useState(2);
 
-  const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [isBreakTime, setIsBreakTime] = useState<boolean>(false);
-  const [sessionCount, setSessionCount] = useState<number>(1);
-  const [maxSessions, setMaxSessions] = useState<number>(2);
+  const [pomoDuration, setPomoDuration] = useState(25);
+  const [breakDuration, setBreakDuration] = useState(5);
+  const [longBreakDuration, setLongBreakDuration] = useState(15);
 
-  const [pomoDuration, setPomoDuration] = useState<number>(25);
-  const [breakDuration, setBreakDuration] = useState<number>(5);
-  const [longBreakDuration, setLongBreakDuration] = useState<number>(15);
-  const [secondsLeft, setSecondsLeft] = useState<number>(25 * 60);
+  const [secondsLeft, setSecondsLeft] = useState(25 * 60);
+  const [initialDuration, setInitialDuration] = useState(25 * 60); // ✅ NEW
 
-  const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [showSettings, setShowSettings] = useState(false);
   const intervalRef = useRef<number | null>(null);
 
   useEffect(() => {
-    setSecondsLeft(pomoDuration * 60);
+    const newDuration = pomoDuration * 60;
+    setSecondsLeft(newDuration);
+    setInitialDuration(newDuration); // ✅ Update duration reference
   }, [pomoDuration]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <View style={{ flexDirection: "row", gap: 16, marginRight: 16 }}>
-          <TouchableOpacity onPress={() => setShowSettings(true)}>
-            <Ionicons name="settings-outline" size={24} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity
+        <View className="flex-row gap-4 mr-4">
+          <Ionicons
+            name="settings-outline"
+            size={24}
+            color={theme === "dark" ? "white" : "black"}
+            onPress={() => setShowSettings(true)}
+          />
+          <Ionicons
+            name="person-circle-outline"
+            size={28}
+            color={theme === "dark" ? "white" : "black"}
             onPress={async () => {
               const { data } = await supabase.auth.getSession();
-              if (data.session) router.push("/auth/profile");
-              else router.push("/auth/login");
+              router.push(data.session ? "/auth/profile" : "/auth/login");
             }}
-          >
-            <Ionicons name="person-circle-outline" size={28} color="white" />
-          </TouchableOpacity>
+          />
         </View>
       ),
-      headerStyle: { backgroundColor: "#228B22" },
-      headerTintColor: "white",
+      headerStyle: {
+        backgroundColor: theme === "dark" ? "#1a1a1a" : "#ffffff",
+      },
+      headerTintColor: theme === "dark" ? "#ffffff" : "#000000",
       title: "Pomodoro",
     });
-  }, [navigation]);
+  }, [navigation, theme]);
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -75,7 +80,9 @@ export default function PomodoroScreen() {
             setBreakDuration(data.break_duration);
             setLongBreakDuration(data.long_break_duration);
             setMaxSessions(data.max_sessions);
-            setSecondsLeft(data.pomo_duration * 60);
+            const newDuration = data.pomo_duration * 60;
+            setSecondsLeft(newDuration);
+            setInitialDuration(newDuration); // ✅ Update
             setIsRunning(false);
             setIsBreakTime(false);
             setSessionCount(1);
@@ -87,7 +94,7 @@ export default function PomodoroScreen() {
     return () => authListener.subscription.unsubscribe();
   }, []);
 
-  const playSound = async (): Promise<void> => {
+  const playSound = async () => {
     const { sound } = await Audio.Sound.createAsync(alertSoundPath);
     await sound.playAsync();
   };
@@ -108,16 +115,16 @@ export default function PomodoroScreen() {
             let alertMsg = "";
 
             if (isBreakTime) {
-              // Was break, go to next pomodoro
               setIsBreakTime(false);
               nextTime = pomoDuration * 60;
+              setInitialDuration(nextTime); // ✅ Update
               alertTitle = "Focus Time!";
               alertMsg = "Time to get back to work.";
               setSessionCount((prev) => (isLastSession ? 1 : prev + 1));
             } else {
-              // Was work, go to break or long break
               const isLong = isLastSession;
-              nextTime = isLong ? longBreakDuration * 60 : breakDuration * 60;
+              nextTime = (isLong ? longBreakDuration : breakDuration) * 60;
+              setInitialDuration(nextTime); // ✅ Update
               alertTitle = isLong ? "Long Break!" : "Break Time!";
               alertMsg = isLong
                 ? "Enjoy your long break."
@@ -145,178 +152,55 @@ export default function PomodoroScreen() {
     setIsRunning(false);
     setIsBreakTime(false);
     setSessionCount(1);
-    setSecondsLeft(pomoDuration * 60);
-  };
-
-  const formatTime = (secs: number): string => {
-    const minutes = Math.floor(secs / 60)
-      .toString()
-      .padStart(2, "0");
-    const seconds = (secs % 60).toString().padStart(2, "0");
-    return `${minutes}:${seconds}`;
+    const newDuration = pomoDuration * 60;
+    setSecondsLeft(newDuration);
+    setInitialDuration(newDuration); // ✅ Add this
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>{isBreakTime ? "Break" : "Focus"}</Text>
-      <Text style={styles.timer}>{formatTime(secondsLeft)}</Text>
-      <Text style={styles.label}>
-        Session: {sessionCount} / {maxSessions}
-      </Text>
+    <View
+      className={`flex-1 justify-center items-center p-6 ${
+        theme === "dark" ? "bg-black" : "bg-gray-100"
+      }`}
+    >
+      <TimerDisplay
+        isBreakTime={isBreakTime}
+        secondsLeft={secondsLeft}
+        sessionCount={sessionCount}
+        maxSessions={maxSessions}
+        duration={initialDuration} // ✅ FIXED
+      />
 
-      <View style={styles.buttons}>
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: "#34C759" }]}
-          onPress={() => setIsRunning(true)}
-          disabled={isRunning}
-        >
-          <Text style={styles.buttonText}>Start</Text>
-        </TouchableOpacity>
+      <TimerControls
+        isRunning={isRunning}
+        setIsRunning={setIsRunning}
+        resetTimer={resetTimer}
+      />
 
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: "#FF3B30" }]}
-          onPress={() => setIsRunning(false)}
-          disabled={!isRunning}
-        >
-          <Text style={styles.buttonText}>Stop</Text>
-        </TouchableOpacity>
+      <SettingsModal
+        visible={showSettings}
+        onClose={() => setShowSettings(false)}
+        onSave={() => {
+          setShowSettings(false);
 
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: "#FFD60A" }]}
-          onPress={resetTimer}
-        >
-          <Text style={styles.buttonText}>Reset</Text>
-        </TouchableOpacity>
-      </View>
+          setTimeout(() => {
+            const updatedDuration = isBreakTime
+              ? breakDuration * 60
+              : pomoDuration * 60;
 
-      {/* Settings Modal */}
-      <Modal visible={showSettings} animationType="slide" transparent>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Timer Settings</Text>
-
-            <Text>Pomodoro Duration (minutes):</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="numeric"
-              value={pomoDuration.toString()}
-              onChangeText={(val) => setPomoDuration(Number(val))}
-            />
-
-            <Text>Break Duration (minutes):</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="numeric"
-              value={breakDuration.toString()}
-              onChangeText={(val) => setBreakDuration(Number(val))}
-            />
-
-            <Text>Long Break Duration (minutes):</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="numeric"
-              value={longBreakDuration.toString()}
-              onChangeText={(val) => setLongBreakDuration(Number(val))}
-            />
-
-            <Text>Max Sessions:</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="numeric"
-              value={maxSessions.toString()}
-              onChangeText={(val) => setMaxSessions(Number(val))}
-            />
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.button, { backgroundColor: "#0A84FF" }]}
-                onPress={() => {
-                  setSecondsLeft(
-                    isBreakTime ? breakDuration * 60 : pomoDuration * 60
-                  );
-                  setShowSettings(false);
-                }}
-              >
-                <Text style={styles.buttonText}>Save</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.button, { backgroundColor: "#999" }]}
-                onPress={() => setShowSettings(false)}
-              >
-                <Text style={styles.buttonText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+            setInitialDuration(updatedDuration); // ✅ Make sure it's updated first
+            setSecondsLeft(updatedDuration); // ✅ Then update secondsLeft
+          }, 50); // small delay lets modal close before state update
+        }}
+        pomoDuration={pomoDuration}
+        breakDuration={breakDuration}
+        longBreakDuration={longBreakDuration}
+        maxSessions={maxSessions}
+        setPomoDuration={setPomoDuration}
+        setBreakDuration={setBreakDuration}
+        setLongBreakDuration={setLongBreakDuration}
+        setMaxSessions={setMaxSessions}
+      />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#228B22",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  label: {
-    fontSize: 20,
-    color: "white",
-    marginBottom: 8,
-  },
-  timer: {
-    fontSize: 72,
-    fontWeight: "bold",
-    color: "white",
-    marginBottom: 16,
-  },
-  buttons: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 12,
-    flexWrap: "wrap",
-    justifyContent: "center",
-  },
-  button: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginHorizontal: 4,
-  },
-  buttonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.4)",
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 12,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 6,
-    padding: 10,
-    marginBottom: 12,
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 12,
-  },
-});

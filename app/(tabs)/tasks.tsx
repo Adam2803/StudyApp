@@ -1,18 +1,19 @@
 // File: app/(tabs)/todo.tsx
 
+import { useTheme } from "@/components/theme-context";
 import { supabase } from "@/lib/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useRef, useState } from "react";
+import { useNavigation } from "@react-navigation/native";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   Alert,
   Button,
   FlatList,
   Modal,
-  SafeAreaView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  useColorScheme,
   View,
 } from "react-native";
 import uuid from "react-native-uuid";
@@ -25,6 +26,11 @@ type Task = {
 };
 
 export default function TodoScreen() {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const colorScheme = useColorScheme();
+  const navigation = useNavigation();
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [input, setInput] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
@@ -34,6 +40,17 @@ export default function TodoScreen() {
   const [editText, setEditText] = useState<string>("");
 
   const TASKS_KEY = "@local_tasks";
+
+  // 🧠 Top header appearance setup
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: "Tasks",
+      headerStyle: {
+        backgroundColor: theme === "dark" ? "#1a1a1a" : "#ffffff",
+      },
+      headerTintColor: theme === "dark" ? "#ffffff" : "#000000",
+    });
+  }, [navigation, isDark]);
 
   useEffect(() => {
     const loadFromStorage = async () => {
@@ -150,19 +167,32 @@ export default function TodoScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.heading}>📝 Your Daily Tasks</Text>
+    <View className={`flex-1 px-4 pt-16 bg-primary dark:bg-primary-dark`}>
+      <Text
+        className={`text-2xl font-bold mb-4 ${
+          isDark ? "text-white" : "text-gray-800"
+        }`}
+      >
+        📝 Your Daily Tasks
+      </Text>
 
-      <View style={styles.inputRow}>
+      <View className="flex-row mb-4">
         <TextInput
-          style={styles.input}
+          className={`flex-1 rounded-lg px-3 py-2 border text-base ${
+            isDark
+              ? "bg-input-dark text-white border-[#444]"
+              : "bg-white text-black border-gray-300"
+          }`}
           placeholder="Add new task..."
-          placeholderTextColor="#888"
+          placeholderTextColor={isDark ? "#aaa" : "#888"}
           value={input}
           onChangeText={setInput}
         />
-        <TouchableOpacity style={styles.addButton} onPress={addTask}>
-          <Text style={styles.addButtonText}>＋</Text>
+        <TouchableOpacity
+          className="ml-2 rounded-lg px-4 justify-center items-center bg-accent"
+          onPress={addTask}
+        >
+          <Text className="text-white text-2xl font-bold">＋</Text>
         </TouchableOpacity>
       </View>
 
@@ -170,21 +200,24 @@ export default function TodoScreen() {
         data={tasks}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.taskItem}>
+          <View className="flex-row items-center p-3 rounded-lg mb-2 bg-white dark:bg-muted-dark">
             <TouchableOpacity
               onPress={() => toggleTask(item.id)}
-              style={[
-                styles.checkbox,
-                item.is_complete && styles.checkboxChecked,
-              ]}
+              className={`w-5 h-5 mr-3 border-2 rounded ${
+                item.is_complete ? "bg-accent" : ""
+              } ${isDark ? "border-gray-400" : "border-gray-600"}`}
             />
             <Text
-              style={[styles.taskText, item.is_complete && styles.taskTextDone]}
+              className={`flex-1 text-base ${
+                item.is_complete
+                  ? "line-through text-gray-400"
+                  : "text-secondary dark:text-secondary-dark"
+              }`}
             >
               {item.content}
             </Text>
             <TouchableOpacity onPress={() => openEditModal(item)}>
-              <Text style={{ marginHorizontal: 8 }}>✏️</Text>
+              <Text className="mx-2">✏️</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => deleteTask(item.id)}>
               <Text>🗑️</Text>
@@ -192,128 +225,32 @@ export default function TodoScreen() {
           </View>
         )}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No tasks yet. Add one above!</Text>
+          <Text className="text-center mt-10 text-gray-500 dark:text-gray-400">
+            No tasks yet. Add one above!
+          </Text>
         }
       />
 
       <Modal visible={!!editingTask} animationType="slide" transparent>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Edit Task</Text>
+        <View className="flex-1 justify-center bg-black/50 p-5">
+          <View className="bg-white dark:bg-muted-dark p-5 rounded-2xl">
+            <Text className="text-lg font-bold mb-3 text-secondary dark:text-secondary-dark">
+              Edit Task
+            </Text>
             <TextInput
-              style={styles.input}
+              className="bg-input dark:bg-input-dark text-secondary dark:text-secondary-dark border border-border dark:border-border-dark rounded-lg px-3 py-2"
               value={editText}
               onChangeText={setEditText}
               placeholder="Edit task name..."
+              placeholderTextColor={isDark ? "#aaa" : "#888"}
             />
-            <View style={styles.modalButtons}>
+            <View className="flex-row justify-between mt-4">
               <Button title="Cancel" onPress={() => setEditingTask(null)} />
               <Button title="Save" onPress={saveEdit} />
             </View>
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 60,
-    paddingHorizontal: 16,
-    backgroundColor: "#f5f5f5",
-  },
-  heading: {
-    fontSize: 26,
-    fontWeight: "bold",
-    marginBottom: 16,
-    color: "#333",
-  },
-  inputRow: {
-    flexDirection: "row",
-    marginBottom: 16,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: "#fff",
-    color: "#000",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: "#ccc",
-  },
-  addButton: {
-    backgroundColor: "#228B22",
-    paddingHorizontal: 16,
-    marginLeft: 8,
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  addButtonText: {
-    color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  taskItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: "#555",
-    marginRight: 12,
-  },
-  checkboxChecked: {
-    backgroundColor: "#228B22",
-  },
-  taskText: {
-    flex: 1,
-    fontSize: 16,
-  },
-  taskTextDone: {
-    textDecorationLine: "line-through",
-    color: "#999",
-  },
-  deleteText: {
-    fontSize: 18,
-    marginLeft: 12,
-  },
-  emptyText: {
-    textAlign: "center",
-    marginTop: 40,
-    color: "#888",
-    fontSize: 16,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.4)",
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 12,
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 12,
-  },
-});
