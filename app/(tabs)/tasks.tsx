@@ -175,12 +175,11 @@ export default function TodoScreen() {
       >
         📝 Your Daily Tasks
       </Text>
-
       <View className="flex-row mb-4">
         <TextInput
           className={`flex-1 rounded-lg px-3 py-2 border text-base ${
             isDark
-              ? "bg-input-dark text-white border-[#444]"
+              ? "bg-card-dark text-white border-[#444]"
               : "bg-white text-black border-gray-300"
           }`}
           placeholder="Add new task..."
@@ -195,12 +194,17 @@ export default function TodoScreen() {
           <Text className="text-white text-2xl font-bold">＋</Text>
         </TouchableOpacity>
       </View>
-
       <FlatList
         data={tasks}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View className="flex-row items-center p-3 rounded-lg mb-2 bg-white dark:bg-muted-dark">
+          <View
+            className={`flex-row items-center p-3 rounded-lg mb-2  ${
+              isDark
+                ? "bg-card-dark text-white border-[#e25656]"
+                : "bg-white text-black border-gray-300"
+            }`}
+          >
             <TouchableOpacity
               onPress={() => toggleTask(item.id)}
               className={`w-5 h-5 mr-3 border-2 rounded ${
@@ -211,9 +215,12 @@ export default function TodoScreen() {
               className={`flex-1 text-base ${
                 item.is_complete
                   ? "line-through text-gray-400"
-                  : "text-secondary dark:text-secondary-dark"
+                  : isDark
+                  ? "text-white "
+                  : "text-gray-800 "
               }`}
             >
+              87
               {item.content}
             </Text>
             <TouchableOpacity onPress={() => openEditModal(item)}>
@@ -225,12 +232,18 @@ export default function TodoScreen() {
           </View>
         )}
         ListEmptyComponent={
-          <Text className="text-center mt-10 text-gray-500 dark:text-gray-400">
+          <Text
+            className={`text-center mt-10 ${
+              isDark
+                ? "bg-input-dark text-white border-[#444]"
+                : "bg-white text-black border-gray-300"
+            }`}
+          >
             No tasks yet. Add one above!
           </Text>
         }
       />
-
+      {/* -----------------Setting Edit Modal----------------------- */}
       <Modal visible={!!editingTask} animationType="slide" transparent>
         <View className="flex-1 justify-center bg-black/50 p-5">
           <View className="bg-white dark:bg-muted-dark p-5 rounded-2xl">

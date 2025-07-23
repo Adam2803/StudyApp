@@ -22,6 +22,11 @@ type Props = {
   setLongBreakDuration: (val: number) => void;
   setMaxSessions: (val: number) => void;
 };
+function cleanNumericInput(val: string) {
+  const num = parseInt(val.replace(/[^0-9]/g, ""), 10);
+  if (isNaN(num)) return 0;
+  return Math.min(num, 999);
+}
 
 export default function SettingsModal({
   visible,
@@ -62,7 +67,7 @@ export default function SettingsModal({
                 className="border border-gray-300 dark:border-zinc-700 text-black dark:text-white rounded-md p-2 mb-3"
                 keyboardType="numeric"
                 value={pomoDuration.toString()}
-                onChangeText={(val) => setPomoDuration(Number(val))}
+                onChangeText={(val) => setPomoDuration(cleanNumericInput(val))}
               />
 
               <Text className="text-black dark:text-white">
@@ -72,7 +77,7 @@ export default function SettingsModal({
                 className="border border-gray-300 dark:border-zinc-700 text-black dark:text-white rounded-md p-2 mb-3"
                 keyboardType="numeric"
                 value={breakDuration.toString()}
-                onChangeText={(val) => setBreakDuration(Number(val))}
+                onChangeText={(val) => setBreakDuration(cleanNumericInput(val))}
               />
 
               <Text className="text-black dark:text-white">
@@ -82,7 +87,9 @@ export default function SettingsModal({
                 className="border border-gray-300 dark:border-zinc-700 text-black dark:text-white rounded-md p-2 mb-3"
                 keyboardType="numeric"
                 value={longBreakDuration.toString()}
-                onChangeText={(val) => setLongBreakDuration(Number(val))}
+                onChangeText={(val) =>
+                  setLongBreakDuration(cleanNumericInput(val))
+                }
               />
 
               <Text className="text-black dark:text-white">Max Sessions:</Text>
@@ -90,7 +97,7 @@ export default function SettingsModal({
                 className="border border-gray-300 dark:border-zinc-700 text-black dark:text-white rounded-md p-2 mb-3"
                 keyboardType="numeric"
                 value={maxSessions.toString()}
-                onChangeText={(val) => setMaxSessions(Number(val))}
+                onChangeText={(val) => setMaxSessions(cleanNumericInput(val))}
               />
 
               {/* ✅ Theme Toggle */}

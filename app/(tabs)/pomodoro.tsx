@@ -160,7 +160,7 @@ export default function PomodoroScreen() {
   return (
     <View
       className={`flex-1 justify-center items-center p-6 ${
-        theme === "dark" ? "bg-black" : "bg-gray-100"
+        theme === "dark" ? "bg-card-dark" : "bg-gray-100"
       }`}
     >
       <TimerDisplay

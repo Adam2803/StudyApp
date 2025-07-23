@@ -58,6 +58,7 @@ function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="auth/login" options={{ headerShown: false }} />
         <Stack.Screen name="auth/signup" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/profile" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style={theme === "dark" ? "light" : "dark"} />

@@ -36,7 +36,7 @@ export default function TabLayout() {
           },
           headerTintColor: theme === "dark" ? "#fff" : "#000",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="timer" color={color} />
+            <Ionicons name="time-outline" size={24} color={color} />
           ),
         }}
       />
