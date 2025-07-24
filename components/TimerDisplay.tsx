@@ -38,9 +38,9 @@ export default function TimerDisplay({
     <View className="items-center justify-center mb-6">
       <AnimatedCircularProgress
         ref={progressRef}
-        size={250}
-        width={15}
-        backgroundWidth={15}
+        size={220}
+        width={6}
+        backgroundWidth={6}
         fill={fillPercent}
         tintColor={isDark ? "#ffffff" : "#000000"} // ✅ white for dark, black for light
         backgroundColor={isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.1)"} // ✅ subtle background
@@ -50,7 +50,7 @@ export default function TimerDisplay({
       >
         {() => (
           <Text
-            className={`font-bold text-7xl font-mono ${
+            className={`font-bold text-5xl font-mono ${
               isDark ? "text-white" : "text-black"
             }`}
           >

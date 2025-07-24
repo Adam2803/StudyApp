@@ -38,6 +38,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <Ionicons name="time-outline" size={24} color={color} />
           ),
+          tabBarLabel: "",
         }}
       />
       <Tabs.Screen
@@ -51,6 +52,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <Ionicons name="checkmark-done-outline" size={24} color={color} />
           ),
+          tabBarLabel: "",
         }}
       />
     </Tabs>
