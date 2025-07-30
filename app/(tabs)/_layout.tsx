@@ -1,16 +1,15 @@
-import { Tabs } from "expo-router";
 import React from "react";
 import { Platform } from "react-native";
+import { Tabs } from "expo-router";
 
 import { HapticTab } from "@/components/HapticTab";
-import { useTheme } from "@/components/theme-context"; // ✅ use your custom theme context
-import { IconSymbol } from "@/components/ui/IconSymbol";
-import TabBarBackground from "@/components/ui/TabBarBackground";
+import { useTheme } from "@/components/theme-context";
 import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
+import TabBarBackground from "@/components/ui/TabBarBackground";
 
 export default function TabLayout() {
-  const { theme } = useTheme(); // ✅ not useColorScheme()
+  const { theme } = useTheme();
 
   return (
     <Tabs
@@ -32,7 +31,7 @@ export default function TabLayout() {
         options={{
           title: "Pomodoro",
           headerStyle: {
-            backgroundColor: Colors[theme].header, // ✅ dynamic header background
+            backgroundColor: Colors[theme].header,
           },
           headerTintColor: theme === "dark" ? "#fff" : "#000",
           tabBarIcon: ({ color }) => (
@@ -46,7 +45,7 @@ export default function TabLayout() {
         options={{
           title: "Tasks",
           headerStyle: {
-            backgroundColor: Colors[theme].header, // ✅ ensure it's synced too
+            backgroundColor: Colors[theme].header,
           },
           headerTintColor: theme === "dark" ? "#fff" : "#000",
           tabBarIcon: ({ color }) => (

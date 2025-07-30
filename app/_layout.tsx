@@ -2,6 +2,7 @@ import {
   ThemeProvider as AppThemeProvider,
   useTheme,
 } from "@/components/theme-context";
+import { TaskContext } from "@/lib/task-context"; // ✅ ADD THIS
 import { supabase } from "@/lib/supabase";
 import {
   DarkTheme,
@@ -12,14 +13,29 @@ import { useFonts } from "expo-font";
 import { Stack, useRootNavigationState } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import "react-native-reanimated";
 import "./globals.css";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+
+// ✅ Define your Task type
+type Task = {
+  id: string;
+  title: string;
+  description: string;
+  tag: string;
+  completed: boolean;
+};
 
 export default function RootLayoutWrapper() {
   return (
-    <AppThemeProvider>
-      <RootLayout />
-    </AppThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AppThemeProvider>
+        <BottomSheetModalProvider>
+          <RootLayout />
+        </BottomSheetModalProvider>
+      </AppThemeProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -32,7 +48,9 @@ function RootLayout() {
   const [isSignedIn, setIsSignedIn] = useState<boolean | null>(null);
   const navigationState = useRootNavigationState();
 
-  // ✅ Check if user is signed in
+  // ✅ Task state for context
+  const [tasks, setTasks] = useState<Task[]>([]);
+
   useEffect(() => {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
@@ -41,27 +59,23 @@ function RootLayout() {
     checkSession();
   }, []);
 
-  // Optional: Redirect if not signed in
-  // useEffect(() => {
-  //   if (navigationState?.key && isSignedIn === false) {
-  //     router.replace("/auth/login");
-  //   }
-  // }, [isSignedIn, navigationState]);
-
   if (!loaded || isSignedIn === null) return null;
 
   return (
     <NavigationThemeProvider
       value={theme === "dark" ? DarkTheme : DefaultTheme}
     >
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/login" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/signup" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/profile" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style={theme === "dark" ? "light" : "dark"} />
+      {/* ✅ Wrap Stack + StatusBar in TaskContext.Provider */}
+      <TaskContext.Provider value={{ tasks, setTasks }}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/signup" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/profile" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <StatusBar style={theme === "dark" ? "light" : "dark"} />
+      </TaskContext.Provider>
     </NavigationThemeProvider>
   );
 }
