@@ -1,6 +1,6 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export type Task = {
   id: string;
@@ -8,13 +8,18 @@ export type Task = {
   description: string;
   tag: string;
   completed: boolean;
+  imageUri: string | null;
 };
+
+// --- THIS IS THE LINE THAT CHANGED ---
+// We use 'Partial' to make all properties in the type optional.
+type UpdatableTaskProps = Partial<Omit<Task, "id" | "completed">>;
 
 type TaskState = {
   tasks: Task[];
-  addTask: (task: Omit<Task, "id" | "completed">) => void;
+  addTask: (task: Omit<Task, "id" | "completed" | "imageUri">) => void;
   deleteTask: (id: string) => void;
-  editTask: (id: string, updated: Omit<Task, "id" | "completed">) => void;
+  editTask: (id: string, updated: UpdatableTaskProps) => void;
   toggleTask: (id: string) => void;
   setTasks: (tasks: Task[]) => void;
 };
@@ -28,6 +33,7 @@ export const useTaskStore = create<TaskState>()(
           ...task,
           id: Date.now().toString(),
           completed: false,
+          imageUri: null,
         };
         set({ tasks: [...get().tasks, newTask] });
       },

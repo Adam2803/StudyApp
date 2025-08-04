@@ -63,7 +63,7 @@ export default function PomodoroScreen() {
         </View>
       ),
       headerStyle: {
-        backgroundColor: theme === "dark" ? "#1a1a1a" : "#ffffff",
+        backgroundColor: theme === "dark" ? "black" : "#ffffff",
       },
       headerTintColor: theme === "dark" ? "#ffffff" : "#000000",
       title: "Pomodoro",
@@ -165,7 +165,7 @@ export default function PomodoroScreen() {
   return (
     <View
       className={`flex-1 justify-center items-center p-6 ${
-        theme === "dark" ? "bg-card-dark" : "bg-gray-100"
+        theme === "dark" ? "black" : "bg-gray-100"
       }`}
     >
       <TimerDisplay
