@@ -1,7 +1,7 @@
 import { useTheme } from "@/components/theme-context";
 import { Task } from "@/lib/task-store";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import { MotiView } from "moti";
 import React from "react";
 import { Pressable, Text, TouchableOpacity, View } from "react-native";
@@ -20,7 +20,8 @@ type Props = {
 export default function TaskItem({ task, onToggle, onEdit, onDelete }: Props) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
-  const router = useRouter();
+
+  const borderColor = isDark ? "border-neutral-700" : "border-neutral-200";
 
   return (
     <Pressable
@@ -31,10 +32,18 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete }: Props) {
         from={{ opacity: 0, translateY: 20 }}
         animate={{ opacity: 1, translateY: 0 }}
         transition={{ type: "timing", duration: 300 }}
-        className={`rounded-2xl p-4 mb-3 ${
-          isDark ? "bg-neutral-800" : "bg-white"
-        } shadow-lg`}
+        className={`rounded-2xl p-4 mb-3 ${isDark ? "bg-neutral-800" : "bg-white"}`}
+        style={{
+          shadowColor: "#000",
+          shadowOffset: { width: 1, height: 2 }, // barely offset
+          shadowOpacity: 0.01, // super light
+          shadowRadius: 12, // smooth & wide
+          elevation: 5, // Android smoothness
+          borderWidth: 1,
+          borderColor: "rgba(0,0,0,0.05)", // subtle border
+        }}
       >
+        {/* Tag + Delete */}
         <View className="flex-row justify-between items-center mb-2">
           <Text
             className={`text-xs font-semibold px-2 py-1 rounded-full ${
@@ -52,11 +61,11 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete }: Props) {
           </TouchableOpacity>
         </View>
 
+        {/* Checkbox + Title/Description */}
         <TouchableOpacity
           onPress={onToggle}
           className="flex-row items-start mt-1"
         >
-          {/* ✅ Checkbox using Ionicons */}
           <View className="mr-3 mt-1">
             {task.completed ? (
               <Ionicons

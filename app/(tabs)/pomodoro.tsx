@@ -1,5 +1,4 @@
 import SettingsModal from "@/components/SettingsModal";
-
 import { useTheme } from "@/components/theme-context";
 import TimerControls from "@/components/TimerControls";
 import TimerDisplay from "@/components/TimerDisplay";
@@ -17,6 +16,11 @@ const alertSoundPath = require("@/assets/sounds/alert.mp3");
 export default function PomodoroScreen() {
   const navigation = useNavigation();
   const { theme } = useTheme();
+
+  // Fallback theme to avoid undefined on real devices
+  const currentTheme = theme || "light";
+  const isDark = currentTheme === "dark";
+
   const [showMusicModal, setShowMusicModal] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [isBreakTime, setIsBreakTime] = useState(false);
@@ -31,7 +35,6 @@ export default function PomodoroScreen() {
   const [initialDuration, setInitialDuration] = useState(25 * 60);
 
   const [showSettings, setShowSettings] = useState(false);
-  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
 
   const intervalRef = useRef<number | null>(null);
 
@@ -48,13 +51,13 @@ export default function PomodoroScreen() {
           <Ionicons
             name="settings-outline"
             size={24}
-            color={theme === "dark" ? "white" : "black"}
+            color={isDark ? "white" : "black"}
             onPress={() => setShowSettings(true)}
           />
           <Ionicons
             name="person-circle-outline"
             size={28}
-            color={theme === "dark" ? "white" : "black"}
+            color={isDark ? "white" : "black"}
             onPress={async () => {
               const { data } = await supabase.auth.getSession();
               router.push(data.session ? "/auth/profile" : "/auth/login");
@@ -63,12 +66,12 @@ export default function PomodoroScreen() {
         </View>
       ),
       headerStyle: {
-        backgroundColor: theme === "dark" ? "black" : "#ffffff",
+        backgroundColor: isDark ? "black" : "#ffffff",
       },
-      headerTintColor: theme === "dark" ? "#ffffff" : "#000000",
+      headerTintColor: isDark ? "#ffffff" : "#000000",
       title: "Pomodoro",
     });
-  }, [navigation, theme]);
+  }, [navigation, isDark]);
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -165,7 +168,7 @@ export default function PomodoroScreen() {
   return (
     <View
       className={`flex-1 justify-center items-center p-6 ${
-        theme === "dark" ? "black" : "bg-gray-100"
+        isDark ? "bg-black" : "bg-gray-100"
       }`}
     >
       <TimerDisplay

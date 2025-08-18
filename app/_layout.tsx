@@ -3,7 +3,7 @@ import {
   useTheme,
 } from "@/components/theme-context";
 import { supabase } from "@/lib/supabase";
-import { TaskContext } from "@/lib/task-context"; // ✅ ADD THIS
+import { TaskContext } from "@/lib/task-context";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import {
   DarkTheme,
@@ -14,11 +14,11 @@ import { useFonts } from "expo-font";
 import { Stack, useRootNavigationState } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
+import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import "./globals.css";
 
-// ✅ Define your Task type
 type Task = {
   id: string;
   title: string;
@@ -32,6 +32,7 @@ export default function RootLayoutWrapper() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AppThemeProvider>
         <BottomSheetModalProvider>
+          {/* RootLayout is now a child of the provider and can use the hook */}
           <RootLayout />
         </BottomSheetModalProvider>
       </AppThemeProvider>
@@ -44,11 +45,10 @@ function RootLayout() {
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
-  const { theme } = useTheme();
+  const { theme } = useTheme(); // ✅ Correctly placed inside the consumer component
   const [isSignedIn, setIsSignedIn] = useState<boolean | null>(null);
   const navigationState = useRootNavigationState();
 
-  // ✅ Task state for context
   const [tasks, setTasks] = useState<Task[]>([]);
 
   useEffect(() => {
@@ -65,27 +65,32 @@ function RootLayout() {
     <NavigationThemeProvider
       value={theme === "dark" ? DarkTheme : DefaultTheme}
     >
-      {/* ✅ Wrap Stack + StatusBar in TaskContext.Provider */}
-      <TaskContext.Provider value={{ tasks, setTasks }}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="auth/login" options={{ headerShown: false }} />
-          <Stack.Screen name="auth/signup" options={{ headerShown: false }} />
-          <Stack.Screen name="auth/profile" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-          <Stack.Screen
-            name="task/[id]"
-            options={{
-              title: "Task Details", // Or whatever you prefer
-              headerTintColor: theme === "dark" ? "#fff" : "#000",
-              headerStyle: {
-                backgroundColor: theme === "dark" ? "#000" : "#fff", // Set header background color
-              },
-            }}
-          />
-        </Stack>
-        <StatusBar style={theme === "dark" ? "light" : "dark"} />
-      </TaskContext.Provider>
+      {/* ✅ Wrap the content with a View that applies the dark class */}
+      <View className={theme === "dark" ? "dark flex-1" : "flex-1"}>
+        <TaskContext.Provider value={{ tasks, setTasks }}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+            <Stack.Screen name="auth/signup" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="auth/profile"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen name="+not-found" />
+            <Stack.Screen
+              name="task/[id]"
+              options={{
+                title: "Task Details",
+                headerTintColor: theme === "dark" ? "#fff" : "#000",
+                headerStyle: {
+                  backgroundColor: theme === "dark" ? "#000" : "#fff",
+                },
+              }}
+            />
+          </Stack>
+          <StatusBar style={theme === "dark" ? "light" : "dark"} />
+        </TaskContext.Provider>
+      </View>
     </NavigationThemeProvider>
   );
 }

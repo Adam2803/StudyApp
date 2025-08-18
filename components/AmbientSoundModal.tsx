@@ -1,52 +1,46 @@
-import React, { useRef, useState } from "react";
-import { View, Text, Pressable } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Audio } from "expo-av";
 import { BlurView } from "expo-blur";
-import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "./theme-context"; // ✅ using your custom hook
+import React, { useRef, useState } from "react";
+import { Pressable, Text, View } from "react-native";
+
+import { ambientSounds } from "@/ambientSounds"; // ✅ Import the auto-generated ambientSounds
+import { useTheme } from "./theme-context";
 
 interface AmbientSoundModalProps {
   visible: boolean;
   onClose: () => void;
 }
 
-const sounds = [
-  {
-    name: "Brown Noise",
-    file: require("@/assets/sounds/Music/brown-noise-by-digitalspa-170337.mp3"),
-  },
-  {
-    name: "Calming Rain",
-    file: require("@/assets/sounds/Music/calming-rain-257596.mp3"),
-  },
-];
-
 export default function AmbientSoundModal({
   visible,
   onClose,
 }: AmbientSoundModalProps) {
-  const { theme } = useTheme(); // ✅ from your theme-context
+  const { theme } = useTheme();
   const isDark = theme === "dark";
 
-  const [currentSoundIndex, setCurrentSoundIndex] = useState<number | null>(
-    null
-  );
+  const [currentSoundId, setCurrentSoundId] = useState<string | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
 
-  const playSound = async (index: number) => {
+  const playSound = async (soundId: string) => {
+    // Stop any currently playing sound
     if (soundRef.current) {
       await soundRef.current.unloadAsync();
       soundRef.current = null;
     }
 
-    const { sound } = await Audio.Sound.createAsync(sounds[index].file, {
+    const soundToPlay = ambientSounds.find((s) => s.id === soundId);
+
+    if (!soundToPlay) return; // Exit if the sound isn't found
+
+    const { sound } = await Audio.Sound.createAsync(soundToPlay.file, {
       isLooping: true,
       volume: 0.8,
     });
 
     soundRef.current = sound;
     await sound.playAsync();
-    setCurrentSoundIndex(index);
+    setCurrentSoundId(soundId);
   };
 
   const stopSound = async () => {
@@ -54,7 +48,7 @@ export default function AmbientSoundModal({
       await soundRef.current.stopAsync();
       await soundRef.current.unloadAsync();
       soundRef.current = null;
-      setCurrentSoundIndex(null);
+      setCurrentSoundId(null);
     }
   };
 
@@ -86,11 +80,11 @@ export default function AmbientSoundModal({
           </Pressable>
         </View>
 
-        {sounds.map((sound, i) => (
+        {ambientSounds.map((sound) => (
           <Pressable
-            key={i}
+            key={sound.id}
             className={`py-3 px-4 rounded-xl mb-3 flex-row items-center justify-between ${
-              currentSoundIndex === i
+              currentSoundId === sound.id
                 ? isDark
                   ? "bg-white/10"
                   : "bg-black/10"
@@ -99,10 +93,10 @@ export default function AmbientSoundModal({
                   : "bg-black/5"
             }`}
             onPress={() => {
-              if (currentSoundIndex === i) {
+              if (currentSoundId === sound.id) {
                 stopSound();
               } else {
-                playSound(i);
+                playSound(sound.id);
               }
             }}
           >
@@ -110,7 +104,7 @@ export default function AmbientSoundModal({
               {sound.name}
             </Text>
             <Ionicons
-              name={currentSoundIndex === i ? "pause" : "play"}
+              name={currentSoundId === sound.id ? "pause" : "play"}
               size={20}
               color={isDark ? "white" : "black"}
             />

@@ -1,15 +1,10 @@
-import { useTheme } from "@/components/theme-context"; // ✅ import your theme context
-import { AnimatePresence, MotiView } from "moti";
-import {
-  Modal,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import React from "react";
+import { Pressable, Text, TextInput, View } from "react-native";
+import { useTheme } from "./theme-context";
 
-type Props = {
+interface SettingsModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: () => void;
@@ -17,15 +12,10 @@ type Props = {
   breakDuration: number;
   longBreakDuration: number;
   maxSessions: number;
-  setPomoDuration: (val: number) => void;
-  setBreakDuration: (val: number) => void;
-  setLongBreakDuration: (val: number) => void;
-  setMaxSessions: (val: number) => void;
-};
-function cleanNumericInput(val: string) {
-  const num = parseInt(val.replace(/[^0-9]/g, ""), 10);
-  if (isNaN(num)) return 0;
-  return Math.min(num, 999);
+  setPomoDuration: React.Dispatch<React.SetStateAction<number>>;
+  setBreakDuration: React.Dispatch<React.SetStateAction<number>>;
+  setLongBreakDuration: React.Dispatch<React.SetStateAction<number>>;
+  setMaxSessions: React.Dispatch<React.SetStateAction<number>>;
 }
 
 export default function SettingsModal({
@@ -40,93 +30,126 @@ export default function SettingsModal({
   setBreakDuration,
   setLongBreakDuration,
   setMaxSessions,
-}: Props) {
+}: SettingsModalProps) {
   const { theme, toggleTheme } = useTheme();
+  const isDark = theme === "dark";
+
+  if (!visible) return null;
 
   return (
-    <Modal visible={visible} animationType="fade" transparent>
-      <AnimatePresence>
-        {visible && (
-          <View className="flex-1 justify-center items-center bg-black/40 p-5">
-            <MotiView
-              from={{ opacity: 0, translateY: 40 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              exit={{ opacity: 0, translateY: 40 }}
-              transition={{ type: "timing", duration: 300 }}
-              className="bg-white dark:bg-zinc-900 p-5 rounded-2xl w-full"
-            >
-              <Text className="text-lg font-bold text-black dark:text-white mb-3">
-                Timer Settings
-              </Text>
+    <BlurView
+      intensity={110}
+      tint={isDark ? "dark" : "light"}
+      className="absolute top-0 left-0 right-0 bottom-0 justify-center items-center px-6"
+    >
+      <View
+        className={`${
+          isDark ? "bg-black/70" : "bg-gray-200"
+        } p-6 rounded-2xl w-full max-w-md`}
+      >
+        {/* Header */}
+        <View className="flex-row justify-between items-center mb-4">
+          <Text
+            className={`${
+              isDark ? "text-white" : "text-black"
+            } text-lg font-semibold`}
+          >
+            Settings
+          </Text>
+          <Pressable onPress={onClose}>
+            <Ionicons
+              name="close"
+              size={24}
+              color={isDark ? "white" : "black"}
+            />
+          </Pressable>
+        </View>
 
-              {/* Inputs */}
-              <Text className="text-black dark:text-white">
-                Pomodoro Duration (minutes):
-              </Text>
-              <TextInput
-                className="border border-gray-300 dark:border-zinc-700 text-black dark:text-white rounded-md p-2 mb-3"
-                keyboardType="numeric"
-                value={pomoDuration.toString()}
-                onChangeText={(val) => setPomoDuration(cleanNumericInput(val))}
-              />
-
-              <Text className="text-black dark:text-white">
-                Break Duration (minutes):
-              </Text>
-              <TextInput
-                className="border border-gray-300 dark:border-zinc-700 text-black dark:text-white rounded-md p-2 mb-3"
-                keyboardType="numeric"
-                value={breakDuration.toString()}
-                onChangeText={(val) => setBreakDuration(cleanNumericInput(val))}
-              />
-
-              <Text className="text-black dark:text-white">
-                Long Break Duration (minutes):
-              </Text>
-              <TextInput
-                className="border border-gray-300 dark:border-zinc-700 text-black dark:text-white rounded-md p-2 mb-3"
-                keyboardType="numeric"
-                value={longBreakDuration.toString()}
-                onChangeText={(val) =>
-                  setLongBreakDuration(cleanNumericInput(val))
-                }
-              />
-
-              <Text className="text-black dark:text-white">Max Sessions:</Text>
-              <TextInput
-                className="border border-gray-300 dark:border-zinc-700 text-black dark:text-white rounded-md p-2 mb-3"
-                keyboardType="numeric"
-                value={maxSessions.toString()}
-                onChangeText={(val) => setMaxSessions(cleanNumericInput(val))}
-              />
-
-              {/* ✅ Theme Toggle */}
-              <View className="flex-row items-center justify-between mb-4">
-                <Text className="text-base text-black dark:text-white">
-                  Dark Mode
-                </Text>
-                <Switch value={theme === "dark"} onValueChange={toggleTheme} />
-              </View>
-
-              <View className="flex-row justify-end gap-3">
-                <TouchableOpacity
-                  className="bg-blue-500 px-4 py-3 rounded-xl"
-                  onPress={onSave}
-                >
-                  <Text className="text-white font-bold">Save</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  className="bg-gray-500 px-4 py-3 rounded-xl"
-                  onPress={onClose}
-                >
-                  <Text className="text-white font-bold">Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </MotiView>
+        {/* Settings fields */}
+        <View className="space-y-3">
+          <View>
+            <Text className={`${isDark ? "text-white" : "text-black"} mb-1`}>
+              Pomodoro Duration (minutes)
+            </Text>
+            <TextInput
+              keyboardType="numeric"
+              value={pomoDuration.toString()}
+              onChangeText={(text) => setPomoDuration(Number(text) || 0)}
+              className={`${
+                isDark ? "bg-white/10 text-white" : "bg-black/10 text-black"
+              } p-2 rounded-xl`}
+            />
           </View>
-        )}
-      </AnimatePresence>
-    </Modal>
+
+          <View>
+            <Text className={`${isDark ? "text-white" : "text-black"} mb-1`}>
+              Short Break Duration (minutes)
+            </Text>
+            <TextInput
+              keyboardType="numeric"
+              value={breakDuration.toString()}
+              onChangeText={(text) => setBreakDuration(Number(text) || 0)}
+              className={`${
+                isDark ? "bg-white/10 text-white" : "bg-black/10 text-black"
+              } p-2 rounded-xl`}
+            />
+          </View>
+
+          <View>
+            <Text className={`${isDark ? "text-white" : "text-black"} mb-1`}>
+              Long Break Duration (minutes)
+            </Text>
+            <TextInput
+              keyboardType="numeric"
+              value={longBreakDuration.toString()}
+              onChangeText={(text) => setLongBreakDuration(Number(text) || 0)}
+              className={`${
+                isDark ? "bg-white/10 text-white" : "bg-black/10 text-black"
+              } p-2 rounded-xl`}
+            />
+          </View>
+
+          <View>
+            <Text className={`${isDark ? "text-white" : "text-black"} mb-1`}>
+              Max Sessions
+            </Text>
+            <TextInput
+              keyboardType="numeric"
+              value={maxSessions.toString()}
+              onChangeText={(text) => setMaxSessions(Number(text) || 0)}
+              className={`${
+                isDark ? "bg-white/10 text-white" : "bg-black/10 text-black"
+              } p-2 rounded-xl`}
+            />
+          </View>
+
+          {/* Dark theme toggle */}
+          <View className="flex-row items-center justify-between pt-2">
+            <Text className={`${isDark ? "text-white" : "text-black"}`}>
+              Dark Theme
+            </Text>
+            <Pressable onPress={toggleTheme}>
+              <Ionicons
+                name={isDark ? "checkmark-circle" : "ellipse-outline"}
+                size={28}
+                color={isDark ? "white" : "black"}
+              />
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Save button */}
+        <Pressable
+          onPress={onSave}
+          className={`mt-6 py-3 rounded-xl items-center ${
+            isDark ? "bg-white/20" : "bg-black/20"
+          }`}
+        >
+          <Text className={`${isDark ? "text-white" : "text-black"}`}>
+            Save
+          </Text>
+        </Pressable>
+      </View>
+    </BlurView>
   );
 }
