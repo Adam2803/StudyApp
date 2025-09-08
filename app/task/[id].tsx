@@ -5,7 +5,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
+import * as Sharing from "expo-sharing";
 import React, { useState } from "react";
 import {
   Alert,
@@ -121,12 +121,15 @@ export default function TaskDetailScreen() {
 
   const openFile = async (uri: string) => {
     try {
-      await WebBrowser.openBrowserAsync(uri);
+      if (!(await Sharing.isAvailableAsync())) {
+        Alert.alert("Error", "Sharing is not available on this device");
+        return;
+      }
+      await Sharing.shareAsync(uri);
     } catch (e) {
       Alert.alert("Error", "Unable to open file");
     }
   };
-
   return (
     <View className={`flex-1 ${isDark ? "bg-black" : "bg-white"}`}>
       <ScrollView className="flex-1 p-4" keyboardShouldPersistTaps="handled">
